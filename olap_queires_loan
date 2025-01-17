@@ -1,0 +1,61 @@
+USE Loan;
+-- Drill-Down: Total loan amount by loan type, then drill down to detailed loans for a specific loan type
+SELECT loan_type_name, SUM(amount) AS total_loan_amount
+FROM Loans
+JOIN LoanTypes ON Loans.loan_type_id = LoanTypes.loan_type_id
+GROUP BY loan_type_name;
+
+-- Now drill down into the loans of a specific loan type, e.g., 'Personal Loan'
+SELECT loan_id, customer_id, amount, loan_date, due_date, status
+FROM Loans
+JOIN LoanTypes ON Loans.loan_type_id = LoanTypes.loan_type_id
+WHERE loan_type_name = 'Loan Type 10';
+
+-- Roll-Up: Total loan amount and average interest rate by customer
+SELECT customer_id, SUM(amount) AS total_loan_amount, AVG(interest_rate) AS avg_interest_rate
+FROM Loans
+GROUP BY customer_id;
+
+-- Slicing: Loans that are 'Active' and of the loan type 'Loan Type 5'
+SELECT loan_id, customer_id, amount, loan_date, due_date, status
+FROM Loans
+JOIN LoanTypes ON Loans.loan_type_id = LoanTypes.loan_type_id
+WHERE status = 'Active' AND loan_type_name = 'Loan Type 5';
+
+-- Dicing: Loan status and total loan amount by loan type and loan officer
+SELECT LoanTypes.loan_type_name, LoanOfficers.first_name, LoanOfficers.last_name, Loans.status, SUM(Loans.amount) AS total_loan_amount
+FROM Loans
+JOIN LoanTypes ON Loans.loan_type_id = LoanTypes.loan_type_id
+JOIN LoanAssignments ON Loans.loan_id = LoanAssignments.loan_id
+JOIN LoanOfficers ON LoanAssignments.officer_id = LoanOfficers.officer_id
+GROUP BY LoanTypes.loan_type_name, LoanOfficers.first_name, LoanOfficers.last_name, Loans.status;
+
+-- Aggregation: Total loan amount by loan status
+SELECT status, SUM(amount) AS total_loan_amount
+FROM Loans
+GROUP BY status;
+
+-- Aggregation: Average loan amount by loan type
+SELECT LoanTypes.loan_type_name, AVG(amount) AS avg_loan_amount
+FROM Loans
+JOIN LoanTypes ON Loans.loan_type_id = LoanTypes.loan_type_id
+GROUP BY LoanTypes.loan_type_name;
+
+-- Aggregation: Count of loans per officer
+SELECT LoanOfficers.first_name, LoanOfficers.last_name, COUNT(Loans.loan_id) AS total_loans_assigned
+FROM Loans
+JOIN LoanAssignments ON Loans.loan_id = LoanAssignments.loan_id
+JOIN LoanOfficers ON LoanAssignments.officer_id = LoanOfficers.officer_id
+GROUP BY LoanOfficers.first_name, LoanOfficers.last_name;
+
+-- Enable profiling for benchmarking
+SET PROFILING = 1;
+
+-- Run a sample query (aggregation query)
+SELECT status, SUM(amount) AS total_loan_amount
+FROM Loans
+GROUP BY status;
+
+-- Check the profile for the query execution
+SHOW PROFILE FOR QUERY 1;
+
