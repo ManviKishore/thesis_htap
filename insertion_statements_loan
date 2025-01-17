@@ -1,0 +1,102 @@
+
+INSERT INTO LoanTypes (loan_type_name, description)
+SELECT
+    CONCAT('Loan Type ', n),
+    CONCAT('Description for Loan Type ', n)
+FROM (SELECT @row := @row + 1 AS n FROM (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) a, (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) b, (SELECT @row := -1) r LIMIT 20) AS numbers;
+
+INSERT INTO Branches (branch_name, address, contact_number)
+SELECT
+    CONCAT('Branch ', n),
+    CONCAT(n, ' Main St, City ', n),
+    CONCAT('555-', LPAD(n, 4, '0'))
+FROM (SELECT @row := @row + 1 AS n FROM (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) a, (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) b, (SELECT @row := -1) r LIMIT 20) AS numbers;
+
+
+INSERT INTO LoanOfficers (branch_id, first_name, last_name, email)
+SELECT
+    branch_id,
+    CONCAT('FirstName', n),
+    CONCAT('LastName', n),
+    CONCAT('officer', branch_id, '_', n, '@loancompany.com')  -- Using branch_id for uniqueness
+FROM Branches, 
+    (SELECT @row := @row + 1 AS n 
+     FROM (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) a,
+          (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3) b, 
+          (SELECT @row := -1) r 
+     LIMIT 20) AS numbers
+LIMIT 20;
+
+-- Insert 5000 rows into the loans table
+INSERT INTO loans (customer_id, loan_type_id, amount, interest_rate, loan_date, due_date, status)
+SELECT
+    FLOOR(1 + (RAND() * 5000)),
+    FLOOR(1 + (RAND() * 16)),  -- Selects valid 'loan_type_id' between 1 and 16
+    ROUND(10000 + (RAND() * 90000), 2),
+    ROUND(2 + (RAND() * 10), 2),
+    DATE_ADD(CURDATE(), INTERVAL -FLOOR(RAND() * 365) DAY),
+    DATE_ADD(CURDATE(), INTERVAL FLOOR(RAND() * 365) DAY),
+    CASE FLOOR(RAND() * 3)
+        WHEN 0 THEN 'Active'
+        WHEN 1 THEN 'Closed'
+        WHEN 2 THEN 'Defaulted'
+    END
+FROM
+    (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20) a
+JOIN
+    (SELECT 1 AS m UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20) b
+LIMIT 5000;
+
+
+INSERT INTO Payments (loan_id, payment_date, amount)
+SELECT
+    l.loan_id,  -- Use existing loan_id from the Loans table
+    DATE_ADD(CURDATE(), INTERVAL -FLOOR(RAND() * 365) DAY),  -- Random payment date within the last year
+    ROUND(100 + (RAND() * 900), 2)  -- Random payment amount between 100 and 1000
+FROM
+    (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20) a
+JOIN
+    (SELECT 1 AS m UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20) b
+JOIN
+    Loans l ON FLOOR(1 + (RAND() * 5000)) = l.loan_id  -- Ensure that the loan_id exists in the Loans table
+LIMIT 5000;
+
+
+
+-- Insert 5000 rows into the LoanAssignments table, ensuring valid loan_id and officer_id
+INSERT INTO LoanAssignments (loan_id, officer_id, assignment_date)
+SELECT
+    l.loan_id,  -- Use existing loan_id from the Loans table
+    o.officer_id,  -- Use existing officer_id from the LoanOfficers table
+    DATE_ADD(CURDATE(), INTERVAL -FLOOR(RAND() * 365) DAY)  -- Random assignment date within the last year
+FROM
+    (SELECT loan_id FROM loans ORDER BY RAND() LIMIT 1000) l
+JOIN
+    (SELECT officer_id FROM LoanOfficers ORDER BY RAND() LIMIT 29) o
+LIMIT 5000;
+
+
+-- Insert 5000 rows into the TransactionHistory table, ensuring valid payment_id
+INSERT INTO TransactionHistory (payment_id, transaction_type, transaction_date, amount)
+SELECT
+    p.payment_id,  -- Use existing payment_id from the Payments table
+    CASE FLOOR(RAND() * 2)
+        WHEN 0 THEN 'Credit'
+        WHEN 1 THEN 'Debit'
+    END,  -- Randomly assign 'Credit' or 'Debit' transaction type
+    DATE_ADD(CURDATE(), INTERVAL -FLOOR(RAND() * 365) DAY),  -- Random transaction date within the last year
+    ROUND(100 + (RAND() * 900), 2)  -- Random transaction amount between 100 and 1000
+FROM
+    (SELECT payment_id FROM Payments ORDER BY RAND() LIMIT 4000) p
+LIMIT 5000;
+
+SELECT COUNT(*) FROM LoanOfficers;
+SELECT COUNT(*) FROM Loans;
+SELECT COUNT(*) FROM Payments;
+SELECT COUNT(*) FROM LoanAssignments;
+SELECT COUNT(*) FROM TransactionHistory;
+SELECT COUNT(*) FROM Branches;
+SELECT COUNT(*) FROM LoanTypes;
+SELECT COUNT(*) FROM Customers;
+
+
